@@ -1,9 +1,10 @@
 package backend;
 
-import org.apache.camel.Endpoint;
+import io.fabric8.annotations.Alias;
+import io.fabric8.annotations.ServiceName;
+import org.apache.activemq.camel.component.ActiveMQComponent;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.cdi.Uri;
 
 import javax.inject.Inject;
 
@@ -13,15 +14,18 @@ import javax.inject.Inject;
 public class BackendRoute extends RouteBuilder {
 
 	@Inject
-	@Uri("activemq:queue:messages")
-	private Endpoint activeMQEndpoint;
+	@Alias("jms")
+	@ServiceName("activemq-broker-service")
+	private ActiveMQComponent activeMQComponent;
+
+	private final String activeMQUri = "jms:queue:messages";
 
 	@Inject
 	@Message
 	private Processor processor;
 
 	public void configure() throws Exception {
-		from(activeMQEndpoint)
+		from(activeMQUri)
 		  .process(processor);
 	}
 }
