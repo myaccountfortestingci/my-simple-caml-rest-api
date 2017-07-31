@@ -1,11 +1,10 @@
 package frontend;
 
-import org.apache.camel.Endpoint;
-import org.apache.camel.Exchange;
+import io.fabric8.annotations.Alias;
+import io.fabric8.annotations.ServiceName;
+import org.apache.activemq.camel.component.ActiveMQComponent;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.cdi.ContextName;
-import org.apache.camel.cdi.Uri;
 
 import javax.inject.Inject;
 
@@ -14,17 +13,16 @@ import javax.inject.Inject;
  */
 public class FrontendRoute extends RouteBuilder {
 
-	@Inject
-	@Uri("direct:putMessage")
-	private Endpoint putEndpoint;
+	private final String putMessageUri = "direct:putMessage";
+
+	private final String getMessageUri = "direct:putMessage";
+
+	private final String activeMQUri = "jms:queue:messages";
 
 	@Inject
-	@Uri("direct:getMessage")
-	private Endpoint getEndpoint;
-
-	@Inject
-	@Uri("activemq:queue:messages")
-	private Endpoint activeMQEndpoint;
+	@Alias("jms")
+	@ServiceName("activemq-broker-service")
+	private ActiveMQComponent activeMQComponent;
 
 	@Inject
 	@Get
@@ -40,11 +38,11 @@ public class FrontendRoute extends RouteBuilder {
 		rest("/")
 		  .get("questions/{id}")
 		  	.route()
-		  	.to(getEndpoint)
+		  	.to(getMessageUri)
 		  	.endRest()
 		  .put("questions/{id}/{content}")
 		  	.route()
-		  	.to(putEndpoint)
+		  	.to(putMessageUri)
 		  	.endRest()
 	  	;
 
@@ -53,15 +51,15 @@ public class FrontendRoute extends RouteBuilder {
 	}
 
 	private void configureGetEndpoint() {
-		from(getEndpoint)
+		from(getMessageUri)
 		  .setBody(simple("${header.id}"))
 		  .process(getProcessor);
 	}
 
 	private void configurePutEndpoint() {
-		from(putEndpoint)
+		from(putMessageUri)
 		  .setBody(simple("${header.id}=${header.content}"))
-		  .to(activeMQEndpoint);
+		  .to(activeMQUri);
 	}
 
 }
